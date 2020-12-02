@@ -1,0 +1,89 @@
+import  matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import cm
+from scipy.optimize import fsolve
+from tkinter import *
+
+def f(x):
+   return np.cos(2*x) * (np.sin(2*x) +1.5)+np.cos(x)
+
+def BaseMatrix(X,n):
+    Base = np.zeros((n,n))
+    for i in range(n):
+        for j in range(0, i + 1):
+            if (j == 0):
+                Base[i][j] = 1
+            if (i > 0 and j > 0 and j <= i):
+                Base[i][j] = (X[i] - X[j - 1]) * Base[i][j - 1]
+    return Base
+
+def Chobysev(n,a,b):
+    x = np.zeros((n))
+    for i in range(n):
+        x[i]=((b-a)/(2)) * np.cos((np.pi*(2*i+1))/(2*n)) + (b+a)/2
+    return x
+
+def Equal(xmax,xmin,N):
+    dx = (xmax - xmin) / (N - 1)
+    print("dx={0}".format(dx))
+    X = np.arange(xmin, xmax, dx)
+    return X
+
+def getInterpolationFunction(p):
+    fnc = ""
+    n = p.size
+    for i in range(n):
+        if(i+1 == n):
+            fnc += " {0:3.5f}".format(p[i])
+        else:
+            fnc += " {0:3.5f}*x^{1} +".format(p[i],n-i-1)
+    return fnc
+
+
+def getPoly(coeff,x):
+    final_pol = np.polynomial.Polynomial([0.])  # grazinamas daugianaris
+    n = coeff.shape[0]  # koef. skaicius
+    for i in range(n):
+        p = np.polynomial.Polynomial([1.])  # laikinas
+        for j in range(i):
+            p_temp = np.polynomial.Polynomial([-x[j], 1.])  # (x - x_j)
+            p = np.polymul(p, p_temp)  # sudauginama su laikinu daugianariu
+        p *= coeff[i]  # padauginam is koef.
+        final_pol = np.polyadd(final_pol, p)  # pridedam prie rezultato
+    p = np.flip(final_pol[0].coef, axis=0)
+    print(p)
+    return p
+
+
+xmax=3
+xmin=-2
+N=12
+#X=Equal(xmax,xmin,N)
+X=Chobysev(N,xmin,xmax)
+Y= f(X)
+n = len(X)
+Matrix = BaseMatrix(X,n)
+print(Matrix)
+
+print("BAZINE:")
+print(Matrix)
+coefs = np.linalg.solve(Matrix,Y)
+print("Koeficientai:")
+print(coefs)
+
+xxx= np.arange(xmin,xmax,0.01)
+
+final_polyn = getPoly(coefs,X)
+y_inter = np.polyval(final_polyn,xxx)
+print("Interpoliuojanti funkcija")
+print(getInterpolationFunction(final_polyn))
+
+
+plt.plot(xxx,f(xxx), 'b-', linewidth=3, label="Funkcija")
+plt.plot(xxx,y_inter,'r-', linewidth=1, label="Interpoliuojanti f-ija(Newton)")
+plt.plot(xxx, f(xxx)-y_inter, '-g', label="Paklaida")
+plt.plot(X,Y,'ro', label="Interpoliuojantys taškai")
+plt.legend()
+plt.grid()
+plt.ylim(-3,4)
+plt.show()
